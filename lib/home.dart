@@ -1,12 +1,11 @@
-import 'dart:io';
-
-import 'package:firebase_auth/firebase_auth.dart';
-import 'package:firebase_storage/firebase_storage.dart';
+import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:path_provider/path_provider.dart';
-import 'package:unicollab/Drawer.dart';
 
+import 'app/profile/profile.dart';
+import 'assignments.dart';
+import 'notices.dart';
 import 'recents.dart';
+import 'resources.dart';
 
 class HomePage extends StatefulWidget {
   @override
@@ -14,51 +13,51 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-  FirebaseAuth auth = FirebaseAuth.instance;
-  FirebaseStorage storage = FirebaseStorage.instance;
-
-  @override
-  void initState() {
-    super.initState();
-    getImage();
-  }
-
-  Future<void> getImage() async {
-    Directory appDocDir = await getApplicationDocumentsDirectory();
-    File downloadToFile =
-        File('${appDocDir.path}/${auth.currentUser.email.toString()}');
-    print(appDocDir.path + '/' + auth.currentUser.email.toString());
-
-    try {
-      await storage
-          .ref('images/' + auth.currentUser.email)
-          .writeToFile(downloadToFile);
-    } catch (e) {
-      print("not found");
-      await storage
-          .ref(
-              "https://firebasestorage.googleapis.com/v0/b/collab-627c8.appspot.com/o/images%2Fdownload.jpg?alt=media&token=a4f8c09d-af58-45f2-a34c-5c05eb007334")
-          .writeToFile(downloadToFile);
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      drawer: DrawerMain(),
-      appBar: AppBar(
-        title: Text(
-          'UniCollab',
+    return SafeArea(
+      child: Scaffold(
+        bottomNavigationBar: CupertinoTabScaffold(
+          tabBar: CupertinoTabBar(items: [
+            BottomNavigationBarItem(
+                icon: Icon(CupertinoIcons.home), label: "Recent"),
+            BottomNavigationBarItem(
+                icon: Icon(CupertinoIcons.book), label: "Resources"),
+            BottomNavigationBarItem(
+                icon: Icon(CupertinoIcons.bell), label: "Notice"),
+            BottomNavigationBarItem(
+                icon: Icon(CupertinoIcons.doc_chart), label: "Assignment"),
+            BottomNavigationBarItem(
+                icon: Icon(CupertinoIcons.person_crop_square),
+                label: "Profile"),
+          ]),
+          tabBuilder: (context, index) {
+            switch (index) {
+              case 0:
+                return CupertinoTabView(
+                    builder: (BuildContext context) => Recent());
+                break;
+              case 1:
+                return CupertinoTabView(
+                    builder: (BuildContext context) => Resource());
+                break;
+              case 2:
+                return CupertinoTabView(
+                    builder: (BuildContext context) => Notice());
+                break;
+              case 2:
+                return CupertinoTabView(
+                    builder: (BuildContext context) => Assignment());
+                break;
+              default:
+                return CupertinoTabView(
+                    builder: (BuildContext context) => EditProfilePage());
+                break;
+            }
+          },
         ),
-        actions: [
-          IconButton(
-            icon: Icon(Icons.more_vert),
-            onPressed: () {},
-          ),
-        ],
+        body: Recent(),
       ),
-      floatingActionButton: RecentFloat(),
-      body: Recent(),
     );
   }
 }

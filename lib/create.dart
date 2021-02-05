@@ -1,8 +1,7 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
-import 'package:random_string/random_string.dart';
+import 'package:provider/provider.dart';
+import 'package:unicollab/services/firestore_service.dart';
 
 class CreateDialog extends StatefulWidget {
   @override
@@ -10,118 +9,78 @@ class CreateDialog extends StatefulWidget {
 }
 
 class _CreateDialogState extends State<CreateDialog> {
-  String title, subject, shortName, description;
+  var _title = TextEditingController(),
+      _subject = TextEditingController(),
+      _shortName = TextEditingController(),
+      _description = TextEditingController();
+
+  Future<void> _createClass(context) async {
+    try {
+      var fireStore = Provider.of<FireStoreService>(context, listen: false);
+      await fireStore.addNewClass(
+          title: _title.text,
+          subject: _subject.text,
+          shortName: _shortName.text,
+          description: _description.text);
+    } catch (e) {
+      print(e);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Create class'),
-        actions: [
-          Container(
-            margin: EdgeInsets.all(10.0),
-            child: ElevatedButton(
-              onPressed: () async {
-                final _fireStore = FirebaseFirestore.instance;
-                FirebaseAuth auth = FirebaseAuth.instance;
-                String code;
-
-                code = randomAlphaNumeric(7);
-
-                // If by chance code is already generated.
-                try {
-                  while (true) {
-                    var event = await _fireStore
-                        .collection('classes')
-                        .where("code", isEqualTo: code)
-                        .get();
-                    if (event.docs.isNotEmpty) {
-                      code = randomAlphaNumeric(7);
-                    } else {
-                      break;
-                    }
-                  }
-                } catch (e) {
-                  print(e);
-                }
-
-                try {
-                  String docId = auth.currentUser.email;
-                  await _fireStore.collection('classes').doc(code).set({
-                    'class code': code,
-                    'title': title,
-                    'subject': subject,
-                    'short name': shortName,
-                    'description': description,
-                    'teachers': [docId],
-                    'students': [],
-                    'created by': docId,
-                  }).then((value) => (print('Class added successfully!')));
-                  await _fireStore.collection('users').doc(docId).update({
-                    'teacher of': [code]
-                  }).then((value) => print("Users successfully updated!"));
-                  Navigator.pop(context);
-                } catch (e) {
-                  print(e);
-                }
-              },
-              child: Text('Create'),
-            ),
+    return SafeArea(
+      child: CupertinoPageScaffold(
+        navigationBar: CupertinoNavigationBar(
+          leading: CupertinoNavigationBarBackButton(
+            onPressed: () {
+              Navigator.pop(context);
+            },
           ),
-        ],
-      ),
-      body: Container(
-        margin: EdgeInsets.all(20.0),
-        child: Column(
-          children: [
-            Container(
-              margin: EdgeInsets.all(5.0),
-              child: TextFormField(
-                decoration: InputDecoration(
-                  filled: true,
-                  labelText: 'Class title',
+          middle: Text('Create a class'),
+          trailing: TextButton(
+            onPressed: () => {_createClass(context), Navigator.pop(context)},
+            child: Icon(CupertinoIcons.paperplane),
+          ),
+        ),
+        child: Container(
+          margin: EdgeInsets.fromLTRB(10.0, 50.0, 10.0, 50.0),
+          child: Column(
+            children: [
+              Container(
+                margin: EdgeInsets.all(10.0),
+                child: CupertinoTextField(
+                  controller: _title,
+                  placeholder: 'Class title',
+                  autofocus: true,
+                  textCapitalization: TextCapitalization.words,
                 ),
-                onChanged: (value) {
-                  title = value;
-                },
               ),
-            ),
-            Container(
-              margin: EdgeInsets.all(5.0),
-              child: TextFormField(
-                decoration: InputDecoration(
-                  filled: true,
-                  labelText: 'Subject',
+              Container(
+                margin: EdgeInsets.all(10.0),
+                child: CupertinoTextField(
+                  controller: _subject,
+                  placeholder: 'Subject',
+                  textCapitalization: TextCapitalization.words,
                 ),
-                onChanged: (value) {
-                  subject = value;
-                },
               ),
-            ),
-            Container(
-              margin: EdgeInsets.all(5.0),
-              child: TextFormField(
-                decoration: InputDecoration(
-                  filled: true,
-                  labelText: 'Short name of subject',
+              Container(
+                margin: EdgeInsets.all(10.0),
+                child: CupertinoTextField(
+                  controller: _shortName,
+                  placeholder: 'Short name for subject',
+                  textCapitalization: TextCapitalization.words,
                 ),
-                onChanged: (value) {
-                  shortName = value;
-                },
               ),
-            ),
-            Container(
-              margin: EdgeInsets.all(5.0),
-              child: TextFormField(
-                decoration: InputDecoration(
-                  filled: true,
-                  labelText: 'Description',
+              Container(
+                margin: EdgeInsets.all(10.0),
+                child: CupertinoTextField(
+                  controller: _description,
+                  placeholder: 'Description',
                 ),
-                onChanged: (value) {
-                  description = value;
-                },
               ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );

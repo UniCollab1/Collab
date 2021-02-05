@@ -1,5 +1,3 @@
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
@@ -9,9 +7,48 @@ class JoinDialog extends StatefulWidget {
 }
 
 class _JoinDialogState extends State<JoinDialog> {
-  String code;
+  var _code = TextEditingController();
+
   @override
   Widget build(BuildContext context) {
+    return SafeArea(
+      child: CupertinoPageScaffold(
+        navigationBar: CupertinoNavigationBar(
+          leading: CupertinoNavigationBarBackButton(
+            onPressed: () {
+              Navigator.pop(context);
+            },
+          ),
+          middle: Text('Join a class'),
+          trailing: TextButton(
+            onPressed: () => {},
+            child: Icon(CupertinoIcons.paperplane),
+          ),
+        ),
+        child: Container(
+          margin: EdgeInsets.fromLTRB(10.0, 50.0, 10.0, 50.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Container(
+                margin: EdgeInsets.all(10.0),
+                child: Text('Enter the code given by your teacher'),
+              ),
+              Container(
+                margin: EdgeInsets.all(10.0),
+                child: CupertinoTextField(
+                  controller: _code,
+                  placeholder: 'Class code',
+                  autofocus: true,
+                  textCapitalization: TextCapitalization.words,
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+    /*
     return Scaffold(
       appBar: AppBar(
         title: Text('Join class'),
@@ -140,6 +177,6 @@ class _JoinDialogState extends State<JoinDialog> {
           ],
         ),
       ),
-    );
+    );*/
   }
 }
