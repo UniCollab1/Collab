@@ -1,9 +1,10 @@
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:unicollab/auth_widget.dart';
-import 'package:unicollab/auth_widget_builder.dart';
 import 'package:unicollab/services/firebase_auth_service.dart';
+
+import 'file:///C:/Users/shrey/StudioProjects/Collab/lib/app/auth/auth_widget.dart';
+import 'file:///C:/Users/shrey/StudioProjects/Collab/lib/app/auth/auth_widget_builder.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();

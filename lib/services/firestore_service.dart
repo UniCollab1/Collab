@@ -29,11 +29,24 @@ class FireStoreService {
     return snapshots;
   }
 
+  Future<DocumentSnapshot> getClass({@required String code}) async {
+    var data;
+    try {
+      data = await fireStore.collection('classes').doc(code).get();
+    } catch (e) {
+      print(e);
+    }
+    return data;
+  }
+
   Future<void> addUserToFireStore() async {
-    await FirebaseFirestore.instance.collection('users').doc(email).update({
-      'teacher of': [],
-      'student of': [],
-    });
+    var result = await fireStore.collection('users').doc(email).get();
+    if (!result.exists) {
+      await fireStore.collection('users').doc(email).update({
+        'teacher of': [],
+        'student of': [],
+      });
+    }
   }
 
   Future<void> addNewClass(
@@ -74,10 +87,13 @@ class FireStoreService {
     }).then((value) => print("Users successfully updated!"));
   }
 
-  Future<void> createMaterial(
+  Future<void> create(
       {@required String code,
       @required String title,
       String description,
+      DateTime dueDate,
+      int type,
+      int marks,
       List<PlatformFile> files}) async {
     var id;
     try {
@@ -88,7 +104,12 @@ class FireStoreService {
           .add({
         'title': title,
         'description': description,
+        'type': type,
+        'class code': code,
         'created at': DateTime.now(),
+        'marks': marks,
+        'due date': dueDate,
+        'edited ': false,
         'files': [],
       }).then((value) => id = value.id);
     } catch (e) {
@@ -96,7 +117,6 @@ class FireStoreService {
     }
     if (files != null) {
       files.forEach((element) async {
-        print(element.path);
         File file = File(element.path);
         try {
           await fireStore
@@ -113,13 +133,38 @@ class FireStoreService {
         }
       });
     }
+    if (type == 2) {
+      var data = await fireStore.collection('classes').doc(code).get();
+      var students = data.data()['students'];
+      students.forEach((element) async {
+        try {
+          await fireStore
+              .collection('classes')
+              .doc(code)
+              .collection('general')
+              .doc(id)
+              .collection('submission')
+              .doc(email)
+              .set({
+            'status': 'not submitted',
+            'files': [],
+            'grades': null,
+          });
+        } catch (e) {
+          print(e);
+        }
+      });
+    }
   }
 
-  Future<void> editMaterial(
+  Future<void> edit(
       {@required String code,
       @required String id,
       @required String title,
+      @required int type,
       String description,
+      int marks,
+      DateTime dueDate,
       List<PlatformFile> files,
       List<String> temp}) async {
     try {
@@ -131,19 +176,129 @@ class FireStoreService {
           .update({
         'title': title,
         'description': description,
+        'type': type,
         'files': temp,
+        'class code': code,
+        'marks': marks,
+        'edited ': true,
+        'due date': dueDate,
         'created at': DateTime.now(),
+      });
+    } catch (e) {
+      print('lol');
+      print(e);
+    }
+    if (files != null) {
+      files.forEach((element) async {
+        File file = File(element.path);
+        try {
+          if (temp.contains(element.name)) {
+            await storage.ref(code + "/general/" + element.name).putFile(file);
+          }
+        } catch (e) {
+          print(e);
+        }
+      });
+    }
+  }
+
+  Future<void> delete({@required String code, @required String id}) async {
+    try {
+      await fireStore
+          .collection('classes')
+          .doc(code)
+          .collection('notice')
+          .doc(id)
+          .delete();
+    } catch (e) {
+      print(e);
+    }
+  }
+
+  Stream<QuerySnapshot> getStudentSubmission(
+      {@required String code, @required String id}) {
+    var snapshots = fireStore
+        .collection('classes')
+        .doc(code)
+        .collection('general')
+        .doc(id)
+        .collection('submission')
+        .snapshots();
+    return snapshots;
+  }
+
+  Future<dynamic> getSubmission(
+      {@required String code,
+      @required String id,
+      @required String email}) async {
+    var data;
+    try {
+      data = await fireStore
+          .collection('classes')
+          .doc(code)
+          .collection('general')
+          .doc(id)
+          .collection('submission')
+          .doc(email)
+          .get();
+    } catch (e) {
+      print(e);
+    }
+    return data;
+  }
+
+  Future<void> submitGrade({
+    @required String code,
+    @required String id,
+    @required String email,
+    @required int grades,
+  }) async {
+    try {
+      await fireStore
+          .collection('classes')
+          .doc(code)
+          .collection('general')
+          .doc(id)
+          .collection('submission')
+          .doc(email)
+          .update({
+        'grades': grades,
+      });
+    } catch (e) {
+      print(e);
+    }
+  }
+
+  Future<void> submit(
+      {@required String code,
+      @required String id,
+      @required String status,
+      List<PlatformFile> files,
+      List<String> temp}) async {
+    try {
+      await fireStore
+          .collection('classes')
+          .doc(code)
+          .collection('general')
+          .doc(id)
+          .collection('submission')
+          .doc(email)
+          .update({
+        'created at': DateTime.now(),
+        'files': temp,
+        'status': status,
       });
     } catch (e) {
       print(e);
     }
     if (files != null) {
       files.forEach((element) async {
-        print("uploading from " + element.path);
         File file = File(element.path);
         try {
           if (temp.contains(element.name)) {
-            await storage.ref(code + "/general/" + element.name).putFile(file);
+            await storage
+                .ref(code + "/general/" + email + "/" + element.name)
+                .putFile(file);
           }
         } catch (e) {
           print(e);
@@ -157,6 +312,7 @@ class FireStoreService {
         .collection('classes')
         .doc(code)
         .collection('general')
+        .orderBy('created at', descending: true)
         .snapshots();
     return lol;
   }
@@ -176,5 +332,9 @@ class FireStoreService {
 
   Future<DocumentSnapshot> doesClassExist({@required String code}) async {
     return await fireStore.collection('classes').doc(code).get();
+  }
+
+  Future<DocumentSnapshot> getUsers({@required String code}) async {
+    return await fireStore.collection('users').doc(email).get();
   }
 }
